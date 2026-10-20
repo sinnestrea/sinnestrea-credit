@@ -1,0 +1,195 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pink Credit</title>
+<style>
+:root {
+  --bg:#100d18; --card:#20182b; --pink:#ff83cb;
+  --purple:#b99aff; --muted:#b8adc9;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:#fff;
+  font-family:system-ui,sans-serif;
+}
+header {
+  padding:25px 18px;
+  background:linear-gradient(135deg,#41234e,#201c46);
+  border-bottom:1px solid #493258;
+}
+.logo {color:var(--pink);font-weight:800;letter-spacing:2px}
+h1 {font-size:28px;margin:12px 0 5px}
+p {color:var(--muted);line-height:1.6}
+main {max-width:650px;margin:auto;padding:16px}
+.card {
+  background:var(--card);border:1px solid #382a49;
+  border-radius:17px;padding:17px;margin-bottom:15px;
+}
+.stats {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.number {font-size:25px;font-weight:800;color:var(--pink)}
+label {display:block;margin:12px 0 6px;color:var(--muted)}
+input,select,textarea {
+  width:100%;padding:12px;border-radius:10px;
+  border:1px solid #554064;background:#15101e;
+  color:white;font:inherit;
+}
+button {
+  background:linear-gradient(100deg,#ff83cb,#b99aff);
+  color:#201329;border:0;border-radius:10px;
+  padding:12px 15px;font-weight:750;cursor:pointer;
+}
+button:focus,input:focus {outline:2px solid var(--purple)}
+.full {width:100%;margin-top:14px}
+.entry {
+  padding:14px 0;border-bottom:1px solid #403047;
+}
+.entry:last-child {border:0}
+.row {display:flex;justify-content:space-between;gap:10px}
+.tag {color:var(--pink);font-size:13px}
+.small {font-size:12px;color:var(--muted)}
+footer {text-align:center;padding:22px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">✦ PINK CREDIT</div>
+  <h1>Trade with trust.</h1>
+  <p>พื้นที่รวบรวมเครดิตและประวัติการซื้อขาย</p>
+</header>
+
+<main>
+  <section class="stats">
+    <div class="card">
+      <div class="small">รายการเครดิต</div>
+      <div class="number" id="total">0</div>
+    </div>
+    <div class="card">
+      <div class="small">ร้านค้าในระบบ</div>
+      <div class="number" id="shops">0</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>⌕ ค้นหาเครดิต</h3>
+    <input id="search" placeholder="ค้นหาชื่อร้านหรือชื่อผู้ขาย">
+  </section>
+
+  <section class="card">
+    <h3>＋ เพิ่มประวัติการซื้อขาย</h3>
+    <p class="small">ข้อมูลที่เพิ่มในเวอร์ชันนี้เก็บเฉพาะในเบราว์เซอร์เครื่องนี้</p>
+    <form id="form">
+      <label>ชื่อร้าน / ผู้ขาย</label>
+      <input id="seller" maxlength="60" required placeholder="เช่น Pink Store">
+      <label>รายละเอียดรายการ</label>
+      <input id="detail" maxlength="120" required placeholder="เช่น ซื้อสินค้าสำเร็จ">
+      <label>สถานะ</label>
+      <select id="status">
+        <option>รอตรวจสอบ</option>
+        <option>มีหลักฐานแล้ว</option>
+        <option>ยกเลิกรายการ</option>
+      </select>
+      <button class="full" type="submit">บันทึกรายการ</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <h3>♡ เครดิตล่าสุด</h3>
+      <button id="export" type="button">ส่งออก JSON</button>
+    </div>
+    <div id="list"></div>
+  </section>
+  <p class="small">ตัวอย่างเพื่อการบันทึกส่วนตัว สถานะยังไม่ใช่การรับรองความน่าเชื่อถือของบุคคล</p>
+</main>
+<footer>Made with ♡ in pink & purple</footer>
+
+<script>
+const KEY = "pink-credit-demo-v1";
+let records = [];
+try {
+  records = JSON.parse(localStorage.getItem(KEY) || "[]");
+  if (!Array.isArray(records)) records = [];
+} catch { records = []; }
+
+const $ = id => document.getElementById(id);
+const safe = value => String(value).replace(/[&<>"']/g, c => ({
+  "&":"&amp;", "<":"&lt;", ">":"&gt;",
+  '"':"&quot;", "'":"&#39;"
+}[c]));
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(records));
+    render();
+  } catch {
+    alert("บันทึกไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม");
+  }
+}
+
+function render() {
+  const q = $("search").value.trim().toLowerCase();
+  const filtered = records.filter(r =>
+    (r.seller + " " + r.detail).toLowerCase().includes(q)
+  );
+  $("total").textContent = records.length;
+  $("shops").textContent = new Set(records.map(r=>r.seller.toLowerCase())).size;
+
+  $("list").innerHTML = filtered.length ? filtered.map(r => `
+    <div class="entry">
+      <div class="row">
+        <strong>${safe(r.seller)}</strong>
+        <span class="tag">${safe(r.status)}</span>
+      </div>
+      <p>${safe(r.detail)}</p>
+      <div class="small">${safe(r.date)}</div>
+      <button type="button" data-delete="${safe(r.id)}"
+        style="margin-top:10px;background:#493047;color:white">
+        ลบรายการ
+      </button>
+    </div>
+  `).join("") : '<p>ยังไม่มีรายการเครดิต</p>';
+
+  $("list").querySelectorAll("[data-delete]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (!confirm("ยืนยันลบรายการนี้?")) return;
+      records = records.filter(r => r.id !== btn.dataset.delete);
+      save();
+    });
+  });
+}
+
+$("form").addEventListener("submit", e => {
+  e.preventDefault();
+  records.unshift({
+    id: crypto.randomUUID(),
+    seller: $("seller").value.trim(),
+    detail: $("detail").value.trim(),
+    status: $("status").value,
+    date: new Date().toLocaleString("th-TH")
+  });
+  save();
+  e.target.reset();
+});
+
+$("search").addEventListener("input", render);
+
+$("export").addEventListener("click", () => {
+  const blob = new Blob(
+    [JSON.stringify(records, null, 2)],
+    {type:"application/json"}
+  );
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "pink-credit-backup.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+render();
+</script>
+</body>
+</html>
